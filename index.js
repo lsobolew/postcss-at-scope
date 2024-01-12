@@ -35,7 +35,7 @@ function scopify(rule, scopeStartSelector, scopeEndSelector, depth) {
 
 module.exports = ({ depth = 10 }) => {
   return {
-    postcssPlugin: "postcss-scope",
+    postcssPlugin: "postcss-at-scope",
 
     AtRule: {
       scope: (atRule) => {
