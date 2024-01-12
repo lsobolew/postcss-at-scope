@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+      @scope (.start1, .start2) to (.end1, .end2) {
+        p {
+          color: red;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="start1">
+      <p>in scope 1</p>
+      <p class="end2">out of scope 1</p>
+    </div>
+    <div class="start2">
+      <p>in scope 2</p>
+      <p class="end1">out of scope 2</p>
+    </div>
+  </body>
+</html>
