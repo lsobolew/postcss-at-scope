@@ -1,6 +1,6 @@
 {
   "name": "postcss-at-scope",
-  "version": "0.0.0",
+  "version": "0.0.0-development",
   "description": "PostCSS plugin @scope polyfill",
   "keywords": [
     "postcss",
@@ -11,7 +11,8 @@
   "scripts": {
     "test": "npm run screentests",
     "screentests": "playwright test --project=chromium",
-    "start": "serve -p 3333 ."
+    "start": "serve -p 3333 .",
+    "semantic-release": "semantic-release"
   },
   "author": "Łukasz Sobolewski <lsobolew@gmail.com>",
   "license": "MIT",
@@ -27,6 +28,7 @@
     "@types/node": "^20.9.2",
     "eslint": "^8.47.0",
     "postcss": "^8.4.27",
+    "semantic-release": "^22.0.12",
     "serve": "^14.2.1"
   },
   "eslintConfig": {
