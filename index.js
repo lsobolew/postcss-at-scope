@@ -33,7 +33,8 @@ function scopify(rule, scopeStartSelector, scopeEndSelector, depth) {
   rule.selector = `${rule.selector}:where(${subSelectors.join(",")})`;
 }
 
-module.exports = ({ depth = 10 }) => {
+module.exports = (opts = { depth: 10 }) => {
+  const depth = opts.depth ? opts.depth : 10;
   return {
     postcssPlugin: "postcss-at-scope",
 
