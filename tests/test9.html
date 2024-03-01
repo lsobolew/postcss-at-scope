@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <style>
       @scope (.start) to (.end) {
-        p span {
+        p ~ span {
           color: red;
         }
       }
@@ -14,6 +14,8 @@
   <body>
     <div class="start">
       <p class="end"><span>out of scope</span></p>
+      <span>in the scope</span>
+      <span class="end">out of scope</span>
     </div>
   </body>
 </html>

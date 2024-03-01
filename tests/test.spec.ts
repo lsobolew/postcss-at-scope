@@ -75,3 +75,15 @@ test("test 6", async ({ page }, testInfo) => {
 test("test 7", async ({ page }, testInfo) => {
   await prepareTest(page, testInfo, "test7.html");
 });
+test("test 8", async ({ page }, testInfo) => {
+  await prepareTest(page, testInfo, "test8.html");
+});
+test("test 9", async ({ page }, testInfo) => {
+  await prepareTest(page, testInfo, "test9.html");
+});
+test("test 10", async ({ page }, testInfo) => {
+  await prepareTest(page, testInfo, "test10.html");
+});
+test("test 11", async ({ page }, testInfo) => {
+  await prepareTest(page, testInfo, "test11.html");
+});

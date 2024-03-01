@@ -10,6 +10,22 @@ function generateChildCombinatorSelectorArray(scopeEndSelector, depth) {
   return arr;
 }
 
+function prepareLeafSelector(selector, scopeEndSelector) {
+  const firstDescendantOrChildSelector = new RegExp(
+    "(?<=[^~>+])\\s+(?=[^~>+])|(?<=[^~>+])>(?=[^~>+])"
+  );
+  const match = selector.match(firstDescendantOrChildSelector);
+
+  if (match === null) {
+    return `${selector}:not(${scopeEndSelector})`;
+  }
+
+  const ancestorSelector = selector.slice(0, match.index);
+  const descendantOrChildSelector = selector.slice(match.index);
+
+  return `${ancestorSelector}:not(${scopeEndSelector})${descendantOrChildSelector}`;
+}
+
 function scopify(rule, scopeStartSelector, scopeEndSelector, depth) {
   if (!scopeStartSelector) {
     return;
@@ -26,7 +42,11 @@ function scopify(rule, scopeStartSelector, scopeEndSelector, depth) {
 
   const subSelectors = childCombinatorSelectorArray.map(
     (childCombinatorSelector) => {
-      return `${scopeStartSelector} ${childCombinatorSelector} > ${rule.selector}:not(${scopeEndSelector})`;
+      const preparedLeafSelector = prepareLeafSelector(
+        rule.selector,
+        scopeEndSelector
+      );
+      return `${scopeStartSelector} ${childCombinatorSelector} > ${preparedLeafSelector}`;
     }
   );
 
