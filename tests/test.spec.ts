@@ -17,7 +17,7 @@ async function polyfillStylesAndGetScreenshots(
   const nativeScopeStyleBuffer = await page
     .locator(screenRootSelector)
     .screenshot();
-  // console.log(result.css);
+  console.log(result.css);
   await styles.evaluate((el, css) => {
     el.innerHTML = css;
   }, result.css);
@@ -86,4 +86,16 @@ test("test 10", async ({ page }, testInfo) => {
 });
 test("test 11", async ({ page }, testInfo) => {
   await prepareTest(page, testInfo, "test11.html");
+});
+test("test 12", async ({ page }, testInfo) => {
+  await prepareTest(page, testInfo, "test12.html");
+});
+test("test 13", async ({ page }, testInfo) => {
+  await prepareTest(page, testInfo, "test13.html");
+});
+test("test 14", async ({ page }, testInfo) => {
+  await prepareTest(page, testInfo, "test14.html");
+});
+test("test 15", async ({ page }, testInfo) => {
+  await prepareTest(page, testInfo, "test15.html");
 });

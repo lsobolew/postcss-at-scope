@@ -2,31 +2,29 @@
  * @type {import('postcss').PluginCreator}
  */
 
-function generateChildCombinatorSelectorArray(scopeEndSelector, depth) {
-  const arr = [];
-  for (let i = 0; i < depth; i++) {
-    arr.push(` > :not(${scopeEndSelector})`.repeat(i));
+function combinations(n, length) {
+  if (length === 1) {
+    return Array.from({ length: n }, (_v, i) => [i]);
   }
-  return arr;
-}
-
-function prepareLeafSelector(selector, scopeEndSelector) {
-  const firstDescendantOrChildSelector = new RegExp(
-    "(?<=[^~>+])\\s+(?=[^~>+])|(?<=[^~>+])>(?=[^~>+])"
-  );
-  const match = selector.match(firstDescendantOrChildSelector);
-
-  if (match === null) {
-    return `${selector}:not(${scopeEndSelector})`;
-  }
-
-  const ancestorSelector = selector.slice(0, match.index);
-  const descendantOrChildSelector = selector.slice(match.index);
-
-  return `${ancestorSelector}:not(${scopeEndSelector})${descendantOrChildSelector}`;
+  return Array.from({ length: n }, (_v, i) =>
+    combinations(n - i, length - 1).map((el) => [i, ...el])
+  ).flat();
 }
 
 function scopify(rule, scopeStartSelector, scopeEndSelector, depth) {
+  const descendantCombinatorRegExp = new RegExp(
+    "(?<=[^~>+])\\s+(?=[^~>+])",
+    "g"
+  );
+  const childCombinatorRegExp = new RegExp("(?<=[^~>+])>(?=[^~>+])", "g");
+  const adjacentSiblingCombinatorRegExp = new RegExp(
+    "(?<=[^~>+])\\+(?=[^~>+])",
+    "g"
+  );
+  const generalSiblingCombinatorRegExp = new RegExp(
+    "(?<=[^~>+])~(?=[^~>+])",
+    "g"
+  );
   if (!scopeStartSelector) {
     return;
   }
@@ -35,22 +33,57 @@ function scopify(rule, scopeStartSelector, scopeEndSelector, depth) {
     return;
   }
 
-  const childCombinatorSelectorArray = generateChildCombinatorSelectorArray(
-    scopeEndSelector,
-    depth
-  );
+  const descendantGroups = rule.selector
+    .split(descendantCombinatorRegExp)
+    .map((subSelector) => {
+      const arr = subSelector
+        .split(childCombinatorRegExp)
+        .map((subSubSelector) =>
+          subSubSelector
+            .split(adjacentSiblingCombinatorRegExp)
+            .map((subSubSubSelector) => {
+              const arr = subSubSubSelector
+                .split(generalSiblingCombinatorRegExp)
+                .map((atomSelector) => atomSelector.trim());
+              return arr;
+            })
+        );
+      return arr
+        .map((sel) => {
+          let lastElement = sel[sel.length - 1][sel[sel.length - 1].length - 1];
+          sel[sel.length - 1][
+            sel[sel.length - 1].length - 1
+          ] = `${lastElement}:not(${scopeEndSelector})`;
 
-  const subSelectors = childCombinatorSelectorArray.map(
-    (childCombinatorSelector) => {
-      const preparedLeafSelector = prepareLeafSelector(
-        rule.selector,
-        scopeEndSelector
-      );
-      return `${scopeStartSelector} ${childCombinatorSelector} > ${preparedLeafSelector}`;
-    }
-  );
+          return sel.map((s) => s.join(" ~ "));
+        })
+        .map((s) => s.join(" + "));
+    })
+    .map((s) => s.join(" > "));
 
-  rule.selector = `${rule.selector}:where(${subSelectors.join(",")})`;
+  const selectorWithScope = [
+    `:where(${scopeStartSelector})`,
+    ...descendantGroups,
+  ];
+  selectorWithScope.length;
+
+  const comb = combinations(depth, selectorWithScope.length - 1);
+
+  const scopedSelectors = comb.map((c) => {
+    let bucket = "";
+    selectorWithScope.forEach((subSelector, i) => {
+      if (i === selectorWithScope.length - 1) {
+        bucket += subSelector;
+      } else {
+        bucket += `${subSelector} > ${`:not(${scopeEndSelector}) > `.repeat(
+          c[i]
+        )}`;
+      }
+    });
+    return bucket;
+  });
+
+  rule.selector = `${rule.selector}:where(${scopedSelectors.join(",")})`;
 }
 
 module.exports = (opts = { depth: 10 }) => {
@@ -67,12 +100,7 @@ module.exports = (opts = { depth: 10 }) => {
         const scopeEndSelector = parsedParams[3];
 
         atRule.walkRules((rule) => {
-          scopify(
-            rule,
-            `:where(${scopeStartSelector})`,
-            `:where(${scopeEndSelector})`,
-            depth
-          );
+          scopify(rule, scopeStartSelector, scopeEndSelector, depth);
         });
         atRule.replaceWith(atRule.nodes);
       },
