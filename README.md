@@ -4,7 +4,7 @@ PostCSS plugin to partially polyfill experimental `@scope` at-rule.
 
 ## The idea
 
-If we consider limited depth of DOM tree then we can polyfill some parts of [styles scoping specification](https://link-url-here.org). For example this selector in scoping rule
+If we consider limited depth of DOM tree then we can polyfill some parts of [styles scoping specification](https://drafts.csswg.org/css-cascade-6/#scoped-styles). For example this selector in scoping rule
 
 ```css
 @scope (.scoping-root) to (.scoping-limit) {
