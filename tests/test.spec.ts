@@ -55,7 +55,7 @@ test.use({
 });
 
 test("test 1 ", async ({ page }, testInfo) => {
-  await prepareTest(page, testInfo, "test1.html");
+  await prepareTest(page, testInfo, "test1.html", { depth: 2 });
 });
 test("test 2", async ({ page }, testInfo) => {
   await prepareTest(page, testInfo, "test2.html");
