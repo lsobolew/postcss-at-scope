@@ -99,3 +99,9 @@ test("test 14", async ({ page }, testInfo) => {
 test("test 15", async ({ page }, testInfo) => {
   await prepareTest(page, testInfo, "test15.html");
 });
+test("test 16", async ({ page }, testInfo) => {
+  await prepareTest(page, testInfo, "test16.html");
+});
+test("test 17", async ({ page }, testInfo) => {
+  await prepareTest(page, testInfo, "test17.html");
+});

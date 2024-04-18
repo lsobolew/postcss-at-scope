@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+      @scope (.bim) to (.bom) {
+        & span {
+          color: green;
+        }
+        :scope span {
+          outline: 1px solid red;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="bim">
+      <span>in the scope</span>
+      <div class="bom">
+        <span>out of scope</span>
+      </div>
+    </div>
+  </body>
+</html>

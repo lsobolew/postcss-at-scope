@@ -1,7 +1,17 @@
 const { scopify } = require("./selectors");
 
 test("scopifies", () => {
-  expect(scopify("p", ".start1, .start2", ".end1, .end2", 3).toString()).toBe(
-    "p:where(:where(.start1, .start2) > p:not(.end1):not(.end2)),p:where(:where(.start1, .start2) > *:not(.end1):not(.end2) > p:not(.end1):not(.end2)),p:where(:where(.start1, .start2) > *:not(.end1):not(.end2) > *:not(.end1):not(.end2) > p:not(.end1):not(.end2))"
+  expect(scopify("& .bom & span", ".bim", ".bom", 1).toString()).toBe(
+    ":is(.bim) .bom :is(.bim) span:where(:is(:is(.bim) .bom .bim) > span:not(.bom))"
+  );
+});
+test("scopifies2", () => {
+  expect(scopify("& .bom :scope span", ".bim", ".bom", 1).toString()).toBe(
+    ":is(.bim) .bom :is(:scope,:where(.bim)) span:where(:is(:is(.bim) .bom .bim) > span:not(.bom))"
+  );
+});
+test("scopifies3", () => {
+  expect(scopify("span", ".bim", ".bom", 1).toString()).toBe(
+    "span:where(:is(.bim) > span:not(.bom))"
   );
 });

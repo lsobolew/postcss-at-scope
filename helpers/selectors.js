@@ -1,6 +1,9 @@
 const parser = require("postcss-selector-parser");
 
 function combinations(n, length) {
+  if (length === 0) {
+    return [];
+  }
   if (length === 1) {
     return Array.from({ length: Math.max(n, 1) }, (_v, i) => [i]);
   }
@@ -89,6 +92,39 @@ function replaceDescendantCombinatorsWithChildCombinators(selector, depth) {
   return result;
 }
 
+function encapsulateScopeRoot(selector) {
+  const transformRoot = (root) => {
+    const newRoot = parser.root();
+
+    root.each((selector) => {
+      const newSelector = parser.selector();
+      const innerSelector = parser.selector();
+      let beforeScope = true;
+      const wrapper = parser.pseudo({ value: `:is` });
+      selector.each((node, index) => {
+        if (beforeScope === true) {
+          innerSelector.append(node.clone());
+          if (node.value === ":scope") {
+            wrapper.append(innerSelector);
+            newSelector.prepend(wrapper);
+            beforeScope = false;
+          }
+        } else {
+          newSelector.append(node);
+        }
+      });
+
+      newRoot.append(newSelector);
+    });
+
+    return newRoot;
+  };
+
+  const processor = parser(transformRoot);
+  const result = processor.transformSync(selector);
+  return result;
+}
+
 function limitEveryDescendantWithScopeEndSelector(selector, selectorEnd) {
   const transformRoot = (root) => {
     const newRoot = parser.root();
@@ -154,13 +190,30 @@ function limitEveryDescendantWithScopeEndSelector(selector, selectorEnd) {
   return result;
 }
 
-function prefixSelectorWithSelector(selector, prefixSelector) {
+function prefixSelectorWithScopePseudoClass(selector) {
+  const scopePseudoClass = parser().astSync(":scope");
   const transformRoot = (root) => {
     const newRoot = parser.root();
     root.each((selector) => {
       const selectorClone = selector.clone();
-      selectorClone.prepend(parser.combinator({ value: " " }));
-      selectorClone.prepend(parser().astSync(prefixSelector));
+
+      let scopeRootCandidate;
+      selectorClone.walkNesting((node) => {
+        scopeRootCandidate = node;
+      });
+      selectorClone.walkPseudos((node) => {
+        if (node.value === ":scope") {
+          scopeRootCandidate = node;
+        }
+      });
+      if (scopeRootCandidate?.value === "&") {
+        scopeRootCandidate.replaceWith(scopePseudoClass);
+      }
+
+      if (!scopeRootCandidate) {
+        selectorClone.prepend(parser.combinator({ value: " " }));
+        selectorClone.prepend(scopePseudoClass);
+      }
       newRoot.append(selectorClone);
     });
     return newRoot;
@@ -208,7 +261,9 @@ function restoreSelectorSpecificity(modifiedSelector, originalSelector) {
     root.each((selector) => {
       const newSelector = parser.selector();
       newSelector.append(parser().astSync(originalSelector));
-      newSelector.append(parser.pseudo({ value: `:where(${selector})` }));
+      if (selector.nodes.length > 0) {
+        newSelector.append(parser.pseudo({ value: `:where(${selector})` }));
+      }
       newRoot.append(newSelector);
     });
     return newRoot;
@@ -220,36 +275,107 @@ function restoreSelectorSpecificity(modifiedSelector, originalSelector) {
   return result;
 }
 
-function scopify(selector, scopeStartSelector, scopeEndSelector, depth) {
-  const selectorPrefixedWithScopeSelector = prefixSelectorWithSelector(
-    selector,
-    ":scope"
-  );
+function replaceNestingWithSelector(selector, scopeStartSelector) {
+  const transformRoot = (root) => {
+    const newRoot = parser.root();
+    root.each((selector) => {
+      const selectorClone = selector.clone();
+      const wrapper = parser.pseudo({ value: `:is` });
+      wrapper.append(parser().astSync(scopeStartSelector));
+      selectorClone.walkNesting((node) => {
+        node.replaceWith(wrapper);
+      });
 
+      newRoot.append(selectorClone);
+    });
+    return newRoot;
+  };
+
+  const processor = parser(transformRoot);
+
+  const result = processor.transformSync(selector);
+
+  return result;
+}
+
+function replaceScopePseudoClassWithSelector(selector, scopeStartSelector) {
+  const transformRoot = (root) => {
+    const newRoot = parser.root();
+    root.each((selector) => {
+      const selectorClone = selector.clone();
+      const wrapper = parser.pseudo({ value: `:is` });
+      wrapper.append(parser.pseudo({ value: ":scope" }));
+      wrapper.append(parser().astSync(`:where(${scopeStartSelector})`));
+
+      selectorClone.walkPseudos((node) => {
+        if (node.value === ":scope") {
+          node.replaceWith(wrapper);
+        }
+      });
+
+      newRoot.append(selectorClone);
+    });
+    return newRoot;
+  };
+
+  const processor = parser(transformRoot);
+
+  const result = processor.transformSync(selector);
+
+  return result;
+}
+
+function scopify(selector, scopeStartSelector, scopeEndSelector, depth) {
+  const selectorPrefixedWithScopeSelector =
+    prefixSelectorWithScopePseudoClass(selector);
+
+  const selectorWithEncapsulatedScopeRoot = encapsulateScopeRoot(
+    selectorPrefixedWithScopeSelector.toString()
+  );
+  // console.log(selectorWithEncapsulatedScopeRoot.toString());
   const selectorWithoutDescendantCombinators =
     replaceDescendantCombinatorsWithChildCombinators(
-      selectorPrefixedWithScopeSelector.toString(),
+      selectorWithEncapsulatedScopeRoot.toString(),
       depth
     );
-
+  // console.log(selectorWithoutDescendantCombinators.toString());
   const selectorWithLimitedDescandants = scopeEndSelector
     ? limitEveryDescendantWithScopeEndSelector(
         selectorWithoutDescendantCombinators.toString(),
         scopeEndSelector
       )
     : selectorWithoutDescendantCombinators;
-
-  const selectorWithScopePseudoClass = replaceScopePsudoClassWithSelector(
-    selectorWithLimitedDescandants.toString(),
-    scopeStartSelector
-  );
-
+  // console.log(selectorWithLimitedDescandants.toString());
+  const selectorWithScopePseudoClassReplaced =
+    replaceScopePsudoClassWithSelector(
+      selectorWithLimitedDescandants.toString(),
+      scopeStartSelector
+    );
+  // console.log(selectorWithScopePseudoClassReplaced.toString());
   const selectorWithRestoredSpecificity = restoreSelectorSpecificity(
-    selectorWithScopePseudoClass.toString(),
+    selectorWithScopePseudoClassReplaced.toString(),
     selector
   );
+  // console.log(selectorWithRestoredSpecificity.toString());
+  const selectorWithScopeStartSelectorInsteadOfNestingSelectors =
+    replaceNestingWithSelector(
+      selectorWithRestoredSpecificity.toString(),
+      scopeStartSelector
+    );
+  // console.log(
+  //   selectorWithScopeStartSelectorInsteadOfNestingSelectors.toString()
+  // );
+  const selectorWithScopeStartSelectorInsteadOfScopePseudoClass =
+    replaceScopePseudoClassWithSelector(
+      selectorWithScopeStartSelectorInsteadOfNestingSelectors.toString(),
+      scopeStartSelector
+    );
 
-  return selectorWithRestoredSpecificity;
+  // console.log(
+  //   selectorWithScopeStartSelectorInsteadOfScopePseudoClass.toString()
+  // );
+
+  return selectorWithScopeStartSelectorInsteadOfScopePseudoClass;
 }
 
 module.exports = {
